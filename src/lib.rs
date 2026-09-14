@@ -121,7 +121,7 @@ impl Shape for Protobuf {
 
     fn shape(&self, stream: &Stream) -> Result<Shaped, ShapeError> {
         let bytes = stream.bytes();
-        let refused = |(reason, at): (&str, usize)| ShapeError::new("protobuf", reason).at(at);
+        let refused = |stop| ShapeError::refused("protobuf", stop);
         if bytes.is_empty() {
             return Err(refused(("no bytes", 0)));
         }
