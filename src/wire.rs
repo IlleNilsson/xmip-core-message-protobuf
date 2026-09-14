@@ -4,12 +4,12 @@
 //! stream is messages each behind a varint length. The walk finds where
 //! every top-level field's value lies and what wire type carries it; no
 //! value is decoded, because without a schema there is nothing to decode
-//! it into, and a shape only sections.
+//! it into, and a shape only sections. The varint itself is the
+//! Foundation's `scan::varint`, which Avro reads too (ADR-0044).
 
+use message::Stop;
+use message::scan::varint;
 use std::ops::Range;
-
-/// Where the walk stopped and why.
-pub type Stop = (&'static str, usize);
 
 /// The largest field number the format allows.
 const LARGEST_FIELD: u64 = (1 << 29) - 1;
@@ -55,24 +55,6 @@ pub struct Field {
     pub number: u32,
     pub wire: WireType,
     pub value: Range<usize>,
-}
-
-/// The varint at `at`: its value and the byte after it.
-///
-/// # Errors
-/// The bytes end inside the varint, or it runs past ten bytes.
-pub fn varint(bytes: &[u8], at: usize) -> Result<(u64, usize), Stop> {
-    let mut value: u64 = 0;
-    for (index, byte) in bytes.get(at..).unwrap_or(&[]).iter().enumerate() {
-        if index >= 10 {
-            return Err(("a varint runs past ten bytes", at));
-        }
-        value |= u64::from(byte & 0x7f) << (7 * index);
-        if byte & 0x80 == 0 {
-            return Ok((value, at + index + 1));
-        }
-    }
-    Err(("the message ends inside a varint", bytes.len()))
 }
 
 /// The top-level fields of the message that is `bytes[range]`.
@@ -177,18 +159,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_varint_is_base_128_little_endian_and_stops_where_it_cannot_end() {
-        assert_eq!(varint(&[0x96, 0x01], 0), Ok((150, 2)));
-        assert_eq!(varint(&[0x00], 0), Ok((0, 1)));
-        let largest = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01];
-        assert_eq!(varint(&largest, 0), Ok((u64::MAX, 10)));
+    fn a_cut_varint_stops_the_walk_where_the_bytes_end() {
         assert_eq!(
-            varint(&[0x80], 0),
-            Err(("the message ends inside a varint", 1))
+            fields(b"\x08\x80", 0..2),
+            Err(("the bytes end inside a varint", 2))
         );
         assert_eq!(
-            varint(&[0x80; 11], 0),
-            Err(("a varint runs past ten bytes", 0))
+            delimited(b"\x02\x08\x01\x80"),
+            Err(("the bytes end inside a varint", 4))
         );
     }
 
