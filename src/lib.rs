@@ -22,10 +22,7 @@
 //! does not have, a message that ends inside a field, a stream that ends
 //! inside a message — is refused with the byte where the walk stopped.
 
-mod wire;
-
-pub use wire::{Field, WireType};
-
+use message::protobuf::{self as wire, Field, WireType};
 use message::{Part, Shape, ShapeError, Shaped};
 use std::ops::Range;
 use stream::Stream;
