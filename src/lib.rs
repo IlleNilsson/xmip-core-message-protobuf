@@ -102,7 +102,7 @@ impl Shape for Protobuf {
         ]
     }
 
-    fn recognises(&self, bytes: &[u8]) -> bool {
+    fn recognizes(&self, bytes: &[u8]) -> bool {
         if bytes.is_empty() {
             return false;
         }
@@ -305,19 +305,19 @@ mod tests {
     }
 
     #[test]
-    fn the_shape_claims_protobuf_and_recognises_bytes_that_walk_as_its_framing() {
+    fn the_shape_claims_protobuf_and_recognizes_bytes_that_walk_as_its_framing() {
         assert_eq!(Protobuf::default().technology(), "protobuf");
         assert!(
             Protobuf::default()
                 .media_types()
                 .contains(&"application/protobuf")
         );
-        assert!(Protobuf::message().recognises(MESSAGE));
-        assert!(!Protobuf::message().recognises(b"hello world"));
-        assert!(!Protobuf::message().recognises(b""));
-        assert!(Protobuf::delimited().recognises(b"\x02\x08\x01"));
-        assert!(!Protobuf::delimited().recognises(b"\x02\x00\x01"));
-        assert!(!Protobuf::delimited().recognises(b"\x09\x08\x01"));
+        assert!(Protobuf::message().recognizes(MESSAGE));
+        assert!(!Protobuf::message().recognizes(b"hello world"));
+        assert!(!Protobuf::message().recognizes(b""));
+        assert!(Protobuf::delimited().recognizes(b"\x02\x08\x01"));
+        assert!(!Protobuf::delimited().recognizes(b"\x02\x00\x01"));
+        assert!(!Protobuf::delimited().recognizes(b"\x09\x08\x01"));
 
         let shapes: [&dyn Shape; 1] = [&Protobuf::message()];
         let by_media = message::choose(&shapes, &stream(b"x", Some("Application/X-Protobuf")));
