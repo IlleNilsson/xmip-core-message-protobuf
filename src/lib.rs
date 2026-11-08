@@ -117,7 +117,7 @@ impl Shape for Protobuf {
     }
 
     fn shape(&self, stream: &Stream) -> Result<Shaped, ShapeError> {
-        let bytes = stream.bytes();
+        let bytes = message::loaded(self.technology(), stream)?;
         let refused = |stop| ShapeError::refused("protobuf", stop);
         if bytes.is_empty() {
             return Err(refused(("no bytes", 0)));
@@ -320,10 +320,15 @@ mod tests {
         assert!(!Protobuf::delimited().recognizes(b"\x09\x08\x01"));
 
         let shapes: [&dyn Shape; 1] = [&Protobuf::message()];
-        let by_media = message::choose(&shapes, &stream(b"x", Some("Application/X-Protobuf")));
+        let by_media =
+            message::choose(&shapes, &stream(b"x", Some("Application/X-Protobuf"))).expect("held");
         assert_eq!(by_media.map(Shape::technology), Some("protobuf"));
-        let by_look = message::choose(&shapes, &stream(b"\x08\x01", None));
+        let by_look = message::choose(&shapes, &stream(b"\x08\x01", None)).expect("held");
         assert_eq!(by_look.map(Shape::technology), Some("protobuf"));
-        assert!(message::choose(&shapes, &stream(b"{}", None)).is_none());
+        assert!(
+            message::choose(&shapes, &stream(b"{}", None))
+                .expect("held")
+                .is_none()
+        );
     }
 }
